@@ -1,0 +1,12 @@
+#+TITLE: Ontology Visualization
+
+* Example
+#+BEGIN_SRC bash
+  ./ontology_viz.py -o test.dot test.ttl
+  dot -Tpng -o test.png test.dot
+#+END_SRC
+
+* Requirements
+In order to use this tool, you'll need to make sure you have [[https://github.com/RDFLib/rdflib][rdflib]] installed.
+
+In order to convert =dot= into =png= or =svg= image, you will need [[https://www.graphviz.org][Graphviz]].

@@ -1,7 +1,8 @@
-from rdflib import Graph, URIRef, Literal, BNode
-from rdflib.namespace import RDF, RDFS, OWL, SKOS
+#!/usr/bin/env python
 import argparse
 from uuid import uuid4
+from rdflib import Graph, URIRef, Literal, BNode
+from rdflib.namespace import RDF, RDFS, OWL, SKOS
 
 
 class OntologyGraph:
@@ -51,7 +52,7 @@ class OntologyGraph:
     def generate_dotstring(cls, node_strings, edge_strings):
         dot = [
             'digraph G {',
-            '  node[style="filled"]',
+            '  node[style="filled" height=.3]',
         ]
         dot.extend(node_strings)
         dot.extend(edge_strings)

@@ -1,0 +1,18 @@
+@prefix : <http://xij.isi.edu/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+
+:Man a owl:Class .
+:Woman a owl:Class .
+:name a owl:DatatypeProperty .
+:hasSpouse a owl:ObjectProperty .
+:hasParent a owl:ObjectProperty .
+:John a :Man ;
+    :name "John" ;
+    :hasSpouse :Mary .
+:Mary a :Woman ;
+    :name "Mary" ;
+    :hasSpouse :John .
+:JohnJr a :Man ;
+    :name "John Jr." ;
+    :hasParent :John, :Mary .
