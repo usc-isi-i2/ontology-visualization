@@ -2,8 +2,15 @@
 import argparse
 from uuid import uuid4
 from rdflib import Graph, URIRef, Literal, BNode
+from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, RDFS, OWL, SKOS
 
+query_classes = prepareQuery("""
+SELECT ?s {
+  { ?s a owl:Class } UNION
+  { ?s owl:subClassOf+ ?o . ?o a owl:Class . }
+}
+""", initNs={'owl': OWL})
 
 class OntologyGraph:
     def __init__(self, files, format='ttl'):
@@ -22,17 +29,25 @@ class OntologyGraph:
             self.g.load(file, format=format)
 
     def _read_graph(self):
-        for class_ in self.g.subjects(RDF.type, OWL.Class):
+        # for class_ in self.g.subjects(RDF.type, OWL.Class):
+        for class_, in self.g.query(query_classes):
             self.classes.add(class_)
+            self._add_predicate_object(class_, True)
             for instance in self.g.subjects(RDF.type, class_):
                 self.instances.add(instance)
-                for prop, obj in self.g.predicate_objects(instance):
-                    if isinstance(obj, Literal):
-                        literal_id = uuid4().hex
-                        self.literals.add((literal_id, obj))
-                        self.edges.add((instance, prop, literal_id))
-                    else:
-                        self.edges.add((instance, prop, obj))
+                self._add_predicate_object(instance)
+
+    def _add_predicate_object(self, subject, is_class=False):
+        for prop, obj in self.g.predicate_objects(subject):
+            if isinstance(obj, Literal):
+                literal_id = uuid4().hex
+                self.literals.add((literal_id, obj))
+                self.edges.add((subject, prop, literal_id))
+            else:
+                if is_class:
+                    print(obj)
+                    self.classes.add(obj)
+                self.edges.add((subject, prop, obj))
 
     def convert(self):
         node_strings = []
@@ -52,6 +67,7 @@ class OntologyGraph:
     def generate_dotstring(cls, node_strings, edge_strings):
         dot = [
             'digraph G {',
+            '  rankdir=BT'
             '  node[style="filled" height=.3]',
         ]
         dot.extend(node_strings)
