@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 from uuid import uuid4
-from rdflib import Graph, URIRef, Literal
+from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, OWL
 
@@ -16,6 +16,7 @@ SELECT ?s {
 class OntologyGraph:
     def __init__(self, files, format='ttl', verbose=False):
         self.g = Graph()
+        self.ontology = Graph()
         self.verbose = verbose
         self._load_files(files, format)
         self.classes = set()
@@ -89,6 +90,8 @@ class OntologyGraph:
             f.write(dot)
 
     def compute_label(self, uri):
+        if isinstance(uri, BNode):
+            return ''
         prefix, _, name = self.g.compute_qname(uri)
         if prefix:
             return '{}:{}'.format(prefix, name)
@@ -106,7 +109,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', dest='out', default='ontology.dot',
                         help='Location of output dot file.')
     parser.add_argument('-V', '--verbose', dest='verbose', default=False, action='store_true',
-                        help='Include obvious owl:Class node in the graph.')
+                        help='Include obvious owl:Class in the graph.')
+    parser.add_argument('-O', '--ontology', dest='ontology', default=None,
+                        help='Provided ontology for the graph.')
     args = parser.parse_args()
 
     og = OntologyGraph(args.files, args.format, verbose=args.verbose)
