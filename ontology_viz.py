@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import argparse
 from uuid import uuid4
-from rdflib import Graph, URIRef, Literal, BNode
+from rdflib import Graph, URIRef, Literal
 from rdflib.plugins.sparql import prepareQuery
-from rdflib.namespace import RDF, RDFS, OWL, SKOS
+from rdflib.namespace import RDF, OWL
 
 query_classes = prepareQuery("""
 SELECT ?s {
@@ -12,9 +12,11 @@ SELECT ?s {
 }
 """, initNs={'owl': OWL})
 
+
 class OntologyGraph:
-    def __init__(self, files, format='ttl'):
+    def __init__(self, files, format='ttl', verbose=False):
         self.g = Graph()
+        self.verbose = verbose
         self._load_files(files, format)
         self.classes = set()
         self.instances = set()
@@ -45,7 +47,8 @@ class OntologyGraph:
                 self.edges.add((subject, prop, literal_id))
             else:
                 if is_class:
-                    print(obj)
+                    if not self.verbose and obj == OWL.Class:
+                        continue
                     self.classes.add(obj)
                 self.edges.add((subject, prop, obj))
 
@@ -102,7 +105,9 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--format', dest='format', default='ttl', help='Input file format.')
     parser.add_argument('-o', '--output', dest='out', default='ontology.dot',
                         help='Location of output dot file.')
+    parser.add_argument('-V', '--verbose', dest='verbose', default=False, action='store_true',
+                        help='Include obvious owl:Class node in the graph.')
     args = parser.parse_args()
 
-    og = OntologyGraph(args.files, args.format)
+    og = OntologyGraph(args.files, args.format, verbose=args.verbose)
     og.write_file(args.out)
