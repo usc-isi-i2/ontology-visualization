@@ -2,9 +2,13 @@
 
 * Example
 #+BEGIN_SRC bash
-  ./ontology_viz.py -o test.dot test.ttl
+  ./ontology_viz.py -o test.dot test.ttl -O ontology.ttl
   dot -Tpng -o test.png test.dot
 #+END_SRC
+
+- Use ~-o~ to indicate the path of output file
+- Use ~-O~ to indicate the input ontology.
+- Classes defined in the ontology will be omitted in the output graph. This action can be switched with argument ~-V~.
 
 * Requirements
 In order to use this tool, you'll need to make sure you have [[https://github.com/RDFLib/rdflib][rdflib]] installed.

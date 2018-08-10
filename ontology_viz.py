@@ -4,38 +4,46 @@ from uuid import uuid4
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, OWL
+from collections import namedtuple
 
 query_classes = prepareQuery("""
 SELECT ?s {
   { ?s a owl:Class } UNION
   { ?s owl:subClassOf+ ?o . ?o a owl:Class . }
-}
-""", initNs={'owl': OWL})
+} """, initNs={'owl': OWL})
+colors = namedtuple('Colors', ['cls', 'lit', 'ins'])('#1f77b4', '#ff7f0e', '#e377c2')
 
 
 class OntologyGraph:
-    def __init__(self, files, format='ttl', verbose=False):
+    def __init__(self, files, format='ttl', verbose=False, ontology=None):
         self.g = Graph()
-        self.ontology = Graph()
+        if ontology is not None:
+            g = Graph()
+            self._load_files(g, ontology)
+            self.ontology_cls = {cls for cls, in g.query(query_classes)}
+            self.g += g
+        else:
+            self.ontology_cls = []
         self.verbose = verbose
-        self._load_files(files, format)
+        self._load_files(self.g, files, format)
         self.classes = set()
         self.instances = set()
         self.edges = set()
         self.literals = set()
         self._read_graph()
 
-    def _load_files(self, files, format):
+    @staticmethod
+    def _load_files(graph, files, format='ttl'):
         if isinstance(files, str):
             files = [files]
         for file in files:
-            self.g.load(file, format=format)
+            graph.load(file, format=format)
 
     def _read_graph(self):
-        # for class_ in self.g.subjects(RDF.type, OWL.Class):
         for class_, in self.g.query(query_classes):
-            self.classes.add(class_)
-            self._add_predicate_object(class_, True)
+            if self.verbose or class_ not in self.ontology_cls:
+                self.classes.add(class_)
+                self._add_predicate_object(class_, True)
             for instance in self.g.subjects(RDF.type, class_):
                 self.instances.add(instance)
                 self._add_predicate_object(instance)
@@ -46,9 +54,9 @@ class OntologyGraph:
                 literal_id = uuid4().hex
                 self.literals.add((literal_id, obj))
                 self.edges.add((subject, prop, literal_id))
-            else:
+            elif self.verbose or obj not in self.ontology_cls:
                 if is_class:
-                    if not self.verbose and obj == OWL.Class:
+                    if obj == OWL.Class:
                         continue
                     self.classes.add(obj)
                 self.edges.add((subject, prop, obj))
@@ -57,15 +65,26 @@ class OntologyGraph:
         node_strings = []
         edge_strings = []
         for class_ in self.classes:
-            node_strings.append('  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_), node_color('#1f77b4')))
+            node_strings.append(self._dot_class_node(class_))
         for instance in self.instances:
-            node_strings.append(
-                '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance), node_color('#e377c2')))
+            node_strings.append(self._dot_instance_node(instance))
         for uri, literal in self.literals:
-            node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, literal, node_color('#ff7f0e')))
+            node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, literal, node_color(colors.lit)))
         for s, p, o in self.edges:
-            edge_strings.append('  "{}" -> "{}" [label="{}"]'.format(s, o, self.compute_label(p)))
+            edge_strings.append('  "{}" -> "{}" [label="{}"]'.format(s, o, self._pred_label(p)))
         return node_strings, edge_strings
+
+    def _dot_class_node(self, class_):
+        color = node_color(colors.cls)
+        if isinstance(class_, BNode):
+            return '  "{}" [label=""{} shape=circle]'.format(class_, color)
+        return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_), color)
+
+    def _dot_instance_node(self, instance):
+        color = node_color(colors.ins)
+        if isinstance(instance, BNode):
+            return '  "{}" [label=""{} shape=circle]'.format(instance, color)
+        return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance), color)
 
     @classmethod
     def generate_dotstring(cls, node_strings, edge_strings):
@@ -89,13 +108,17 @@ class OntologyGraph:
         with open(file, 'w') as f:
             f.write(dot)
 
-    def compute_label(self, uri):
-        if isinstance(uri, BNode):
-            return ''
+    pred_map = { RDF.type: 'a' }
+
+    def _pred_label(self, uri):
+        return self.pred_map.get(uri, self.compute_label(uri, 0))
+
+    def compute_label(self, uri, length=20):
         prefix, _, name = self.g.compute_qname(uri)
-        if prefix:
-            return '{}:{}'.format(prefix, name)
-        return name
+        label = '{}:{}'.format(prefix, name) if prefix else name
+        if length and len(label) > length:
+            label = label[:length-3] + '...'
+        return label
 
 
 def node_color(color):
@@ -109,10 +132,10 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', dest='out', default='ontology.dot',
                         help='Location of output dot file.')
     parser.add_argument('-V', '--verbose', dest='verbose', default=False, action='store_true',
-                        help='Include obvious owl:Class in the graph.')
+                        help='Include Classes defined in the ontology.')
     parser.add_argument('-O', '--ontology', dest='ontology', default=None,
                         help='Provided ontology for the graph.')
     args = parser.parse_args()
 
-    og = OntologyGraph(args.files, args.format, verbose=args.verbose)
+    og = OntologyGraph(args.files, args.format, verbose=args.verbose, ontology=args.ontology)
     og.write_file(args.out)

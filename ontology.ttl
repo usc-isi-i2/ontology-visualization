@@ -1,0 +1,14 @@
+@prefix : <http://xij.isi.edu/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:Person a owl:Class .
+:Man owl:subClassOf :Person .
+:Woman owl:subClassOf :Person .
+:name a owl:DatatypeProperty .
+:hasSpouse a owl:ObjectProperty .
+:hasParent a owl:ObjectProperty .
+:Activity a owl:Class .
+:title a owl:DatatypeProperty .
+:has_time_span a owl:ObjectProperty .

@@ -3,12 +3,6 @@
 @prefix owl:   <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-:Person a owl:Class .
-:Man owl:subClassOf :Person .
-:Woman owl:subClassOf :Person .
-:name a owl:DatatypeProperty .
-:hasSpouse a owl:ObjectProperty .
-:hasParent a owl:ObjectProperty .
 :John a :Man ;
     :name "John" ;
     :hasSpouse :Mary .
@@ -18,12 +12,11 @@
 :John_jr a :Man ;
     :name "John Jr." ;
     :hasParent :John, :Mary .
-:Activity a owl:Class .
 :Time_Span a owl:Class .
-:title a owl:DatatypeProperty .
-:has_time_span a owl:ObjectProperty .
 :event a :Activity ;
     :has_time_span [
         a :Time_Span ;
         :at_some_time_within_date "2018-01-12"^^xsd:date
         ] .
+:u129u-klejkajo-2309124u-sajfl a :Person ;
+    :name "John Doe" .
