@@ -3,7 +3,7 @@ import argparse
 from uuid import uuid4
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
-from rdflib.namespace import RDF, OWL
+from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL, split_uri, Namespace
 from collections import namedtuple
 
 query_classes = prepareQuery("""
@@ -11,7 +11,14 @@ SELECT ?s {
   { ?s a owl:Class } UNION
   { ?s owl:subClassOf+ ?o . ?o a owl:Class . }
 } """, initNs={'owl': OWL})
+query_properties = prepareQuery("""
+SELECT ?s {
+  { ?s a ?property } UNION { ?s owl:subPropertyOf+ ?o . ?o a ?property }
+  FILTER ( ?property IN ( owl:DatatypeProperty, owl:ObjectProperty ) )
+} """, initNs={'owl': OWL})
 colors = namedtuple('Colors', ['cls', 'lit', 'ins'])('#1f77b4', '#ff7f0e', '#e377c2')
+SCHEMA = Namespace('http://schema.org/')
+common_ns = set(map(lambda ns: ns.uri, (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF)))
 
 
 class OntologyGraph:
@@ -22,6 +29,7 @@ class OntologyGraph:
             self._load_files(g, ontology)
             self.ontology_defined = True
             self.ontology_cls = {cls for cls, in g.query(query_classes)}
+            self.ontology_pty = {pty for pty, in g.query(query_properties)}
         else:
             self.ontology_defined = False
         self._load_files(self.g, files, format)
@@ -46,19 +54,30 @@ class OntologyGraph:
                 else:
                     self.add_to_classes(o)
                     self.instances.add(s)
-                    self.edges.add((s, p, o))
+                    self.add_edge((s, p, o))
             elif isinstance(o, Literal):
                 literal_id = uuid4().hex
                 self.literals.add((literal_id, o))
-                self.edges.add((s, p, literal_id))
+                self.add_edge((s, p, literal_id))
             else:
-                self.edges.add((s, p, o))
+                self.add_edge((s, p, o))
 
     def add_to_classes(self, cls):
         if self.ontology_defined:
             if cls not in self.classes and cls not in self.ontology_cls:
-                print("[WARNING] {} doesn't exist in the ontology!".format(cls))
+                print("[WARNING] Class {} doesn't exist in the ontology!".format(cls))
+                self.ontology_cls.add(cls)  # Only bark once
         self.classes.add(cls)
+
+    def add_edge(self, triple):
+        if self.ontology_defined:
+            _, p, _ = triple
+            if p not in self.ontology_pty:
+                prefix, _ = split_uri(p)
+                if URIRef(prefix) not in common_ns:
+                    print("[WARNING] Property {} doesn't exist in the ontology!".format(p))
+                    self.ontology_pty.add(p)  # Only bark once
+        self.edges.add(triple)
 
     def convert(self):
         node_strings = []
