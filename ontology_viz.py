@@ -144,8 +144,7 @@ def node_color(color):
 
 
 def text_justify(words, max_width):
-    words.replace('"', '\"')
-    words = words.split()
+    words = words.replace('"', '\\"').split()
     res, cur, num_of_letters = [], [], 0
     max_ = 0
     for w in words:
