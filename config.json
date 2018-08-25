@@ -1,0 +1,19 @@
+{
+  "max_label_length": 20,
+  "blacklist": [
+    "http://www.w3.org/2004/02/skos/core#definition",
+    "http://www.w3.org/2004/02/skos/core#example",
+    "http://www.w3.org/2004/02/skos/core#note",
+    "http://www.w3.org/2000/01/rdf-schema#label",
+    "http://dig.isi.edu/ontologies/dig-annotation/crm_equivalent"
+  ],
+  "class_inference_in_object": [
+    "http://schema.org/domainIncludes",
+    "http://schema.org/rangeIncludes",
+    "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+    "http://www.w3.org/2002/07/owl#subClassOf"
+  ],
+  "property_inference_in_object": [
+    "http://www.w3.org/2002/07/owl#subPropertyOf"
+  ]
+}

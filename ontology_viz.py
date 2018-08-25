@@ -21,8 +21,27 @@ SCHEMA = Namespace('http://schema.org/')
 common_ns = set(map(lambda ns: ns.uri, (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF)))
 
 
+class Config:
+    def __init__(self, config_file=None):
+        self.blacklist = set()
+        self.class_inference_in_object = set()
+        self.property_inference_in_object = set()
+        self.max_label_length = 0
+        if config_file:
+            self.read_config_file(config_file)
+
+    def read_config_file(self, config_file):
+        import json
+        with open(config_file) as f:
+            config = json.load(f)
+        self.blacklist = {URIRef(x) for x in config.get('blacklist', [])}
+        self.class_inference_in_object = {URIRef(x) for x in config.get('class_inference_in_object', [])}
+        self.property_inference_in_object = {URIRef(x) for x in config.get('property_inference_in_object', [])}
+        self.max_label_length = int(config.get('max_label_length', 0))
+
+
 class OntologyGraph:
-    def __init__(self, files, format='ttl', ontology=None):
+    def __init__(self, files, config, format='ttl', ontology=None):
         self.g = Graph()
         if ontology is not None:
             g = Graph()
@@ -32,6 +51,7 @@ class OntologyGraph:
             self.ontology_pty = {pty for pty, in g.query(query_properties)}
         else:
             self.ontology_defined = False
+        self.config = config
         self._load_files(self.g, files, format)
         self.classes = set()
         self.instances = set()
@@ -48,6 +68,7 @@ class OntologyGraph:
 
     def _read_graph(self):
         for s, p, o in self.g:
+            if p in self.config.blacklist: continue
             if p == RDF.type:
                 if o == OWL.Class:
                     self.add_to_classes(s)
@@ -60,6 +81,10 @@ class OntologyGraph:
                 self.literals.add((literal_id, o))
                 self.add_edge((s, p, literal_id))
             else:
+                if p in self.config.class_inference_in_object:
+                    self.add_to_classes(o)
+                if p in self.config.property_inference_in_object:
+                    self.instances.add(o)
                 self.add_edge((s, p, o))
 
     def add_to_classes(self, cls):
@@ -96,13 +121,14 @@ class OntologyGraph:
         color = node_color(colors.cls)
         if isinstance(class_, BNode):
             return '  "{}" [label=""{} shape=circle]'.format(class_, color)
-        return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_), color)
+        return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_, self.config.max_label_length), color)
 
     def _dot_instance_node(self, instance):
         color = node_color(colors.ins)
         if isinstance(instance, BNode):
             return '  "{}" [label=""{} shape=circle]'.format(instance, color)
-        return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance), color)
+        return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance, self.config.max_label_length),
+                                              color)
 
     @classmethod
     def generate_dotstring(cls, node_strings, edge_strings):
@@ -166,7 +192,10 @@ if __name__ == '__main__':
                         help='Location of output dot file.')
     parser.add_argument('-O', '--ontology', dest='ontology', default=None,
                         help='Provided ontology for the graph.')
+    parser.add_argument('-C', '--config', dest='config', default=None,
+                        help='Provided configuration.')
     args = parser.parse_args()
 
-    og = OntologyGraph(args.files, args.format, ontology=args.ontology)
+    config = Config(args.config)
+    og = OntologyGraph(args.files, config, args.format, ontology=args.ontology)
     og.write_file(args.out)
