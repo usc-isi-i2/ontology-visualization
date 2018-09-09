@@ -15,5 +15,11 @@
   ],
   "property_inference_in_object": [
     "http://www.w3.org/2002/07/owl#subPropertyOf"
-  ]
+  ],
+  "colors": {
+    "class": "#1f77b4",
+    "literal": "#ff7f0e",
+    "instance": "#e377c2"
+    "filled": false
+  }
 }

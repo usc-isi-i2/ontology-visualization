@@ -3,8 +3,8 @@ import argparse
 from uuid import uuid4
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
-from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL, split_uri, Namespace
-from collections import namedtuple
+from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL, split_uri
+from utils import Config, SCHEMA
 
 query_classes = prepareQuery("""
 SELECT ?s {
@@ -16,28 +16,7 @@ SELECT ?s {
   { ?s a ?property } UNION { ?s owl:subPropertyOf+ ?o . ?o a ?property }
   FILTER ( ?property IN ( owl:DatatypeProperty, owl:ObjectProperty ) )
 } """, initNs={'owl': OWL})
-colors = namedtuple('Colors', ['cls', 'lit', 'ins'])('#1f77b4', '#ff7f0e', '#e377c2')
-SCHEMA = Namespace('http://schema.org/')
 common_ns = set(map(lambda ns: ns.uri, (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF)))
-
-
-class Config:
-    def __init__(self, config_file=None):
-        self.blacklist = set()
-        self.class_inference_in_object = set()
-        self.property_inference_in_object = set()
-        self.max_label_length = 0
-        if config_file:
-            self.read_config_file(config_file)
-
-    def read_config_file(self, config_file):
-        import json
-        with open(config_file) as f:
-            config = json.load(f)
-        self.blacklist = {URIRef(x) for x in config.get('blacklist', [])}
-        self.class_inference_in_object = {URIRef(x) for x in config.get('class_inference_in_object', [])}
-        self.property_inference_in_object = {URIRef(x) for x in config.get('property_inference_in_object', [])}
-        self.max_label_length = int(config.get('max_label_length', 0))
 
 
 class OntologyGraph:
@@ -68,7 +47,8 @@ class OntologyGraph:
 
     def _read_graph(self):
         for s, p, o in self.g:
-            if p in self.config.blacklist: continue
+            if p in self.config.blacklist:
+                continue
             if p == RDF.type:
                 if o == OWL.Class:
                     self.add_to_classes(s)
@@ -112,31 +92,35 @@ class OntologyGraph:
         for instance in self.instances:
             node_strings.append(self._dot_instance_node(instance))
         for uri, literal in self.literals:
-            node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, text_justify(literal, 20), node_color(colors.lit)))
+            node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, text_justify(literal, 20),
+                                                                          node_color(self.config.colors.lit)))
         for s, p, o in self.edges:
             edge_strings.append('  "{}" -> "{}" [label="{}"]'.format(s, o, self._pred_label(p)))
         return node_strings, edge_strings
 
     def _dot_class_node(self, class_):
-        color = node_color(colors.cls)
+        color = node_color(self.config.colors.cls)
         if isinstance(class_, BNode):
             return '  "{}" [label=""{} shape=circle]'.format(class_, color)
         return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_, self.config.max_label_length), color)
 
     def _dot_instance_node(self, instance):
-        color = node_color(colors.ins)
+        color = node_color(self.config.colors.ins)
         if isinstance(instance, BNode):
             return '  "{}" [label=""{} shape=circle]'.format(instance, color)
         return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance, self.config.max_label_length),
                                               color)
 
     @classmethod
-    def generate_dotstring(cls, node_strings, edge_strings):
+    def generate_dotstring(cls, node_strings, edge_strings, fill):
         dot = [
             'digraph G {',
             '  rankdir=BT'
-            '  node[style="filled" height=.3]',
         ]
+        if fill:
+            dot.append('  node[style="filled" height=.3]')
+        else:
+            dot.append('  node[height=.3]')
         dot.extend(node_strings)
         dot.extend(edge_strings)
         dot.append('}')
@@ -144,7 +128,7 @@ class OntologyGraph:
 
     def generate(self):
         nodes, edges = self.convert()
-        dot = self.generate_dotstring(nodes, edges)
+        dot = self.generate_dotstring(nodes, edges, self.config.colors.filled)
         return dot
 
     def write_file(self, file):
@@ -152,7 +136,7 @@ class OntologyGraph:
         with open(file, 'w') as f:
             f.write(dot)
 
-    pred_map = { RDF.type: 'a' }
+    pred_map = {RDF.type: 'a'}
 
     def _pred_label(self, uri):
         return self.pred_map.get(uri, self.compute_label(uri, 0))
