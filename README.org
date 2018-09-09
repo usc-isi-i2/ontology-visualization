@@ -12,6 +12,9 @@
   - ~max_label_length~: config the max length of labels. If the text exceeds the length, exceeded part will be replaced with "...". Default value is ~0~.
   - ~blacklist~: config the predicate that you don't want to see in the graph.
   - ~class_inference_in_object~: config the predicate that can inference the object is a ~Class~, even if the class doesn't defined in the ontology.
+  - ~colors~: config the colors of nodes
+    - ~class~, ~literal~, ~instance~ can accept HEX value(e.g. ~"#ff0000"~ ), MATLAB style(e.g. ~"r"~ ), and color name (e.g. ~"red"~ ).
+    - ~filled~: config whether fill the node, default value: ~true~.
 - Classes defined in the ontology will be omitted in the output graph. This action can be switched with argument ~-V~.
 
 * Requirements
