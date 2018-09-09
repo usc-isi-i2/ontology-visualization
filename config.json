@@ -19,7 +19,7 @@
   "colors": {
     "class": "#1f77b4",
     "literal": "#ff7f0e",
-    "instance": "#e377c2"
+    "instance": "#e377c2",
     "filled": false
   }
 }
