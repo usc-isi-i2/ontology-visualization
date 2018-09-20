@@ -34,10 +34,20 @@ class Config:
         if 'colors' in config:
             config_color = ConfigColor()
             colors = config['colors']
-            self.colors.cls = config_color.parse(colors.get('class', self.colors.cls))
-            self.colors.lit = config_color.parse(colors.get('literal', self.colors.cls))
-            self.colors.ins = config_color.parse(colors.get('instance', self.colors.cls))
+            self.colors.cls = config_color.parse(colors.get('class', self.colors.cls), self.colors.cls)
+            self.colors.lit = config_color.parse(colors.get('literal', self.colors.lit), self.colors.lit)
+            self.colors.ins = config_color.parse(colors.get('instance', self.colors.ins))
             self.colors.filled = colors.get('filled', True)
+
+    def get_ins_color(self, cls):
+        if isinstance(self.colors.ins, dict):
+            return self.colors.ins.get(str(cls), self.colors.ins['default'])
+        return self.colors.ins
+
+    def get_cls_color(self, cls):
+        if isinstance(self.colors.cls, dict):
+            return self.colors.cls.get(str(cls), self.colors.cls['default'])
+        return self.colors.cls
 
 
 class UndefinedColorError(Exception):
@@ -64,7 +74,11 @@ class ConfigColor:
         'black': '#000000',
     }
 
-    def parse(self, s):
+    def parse(self, s, default='w'):
+        if isinstance(s, dict):
+            if 'default' not in s:
+                s['default'] = default
+            return {cls: self.parse(color) for cls, color in s.items()}
         if s.startswith('#'):
             return s
         if s in self.default_color_map:

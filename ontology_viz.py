@@ -35,7 +35,7 @@ class OntologyGraph:
         self.config = config
         self._load_files(self.g, files, format)
         self.classes = set()
-        self.instances = set()
+        self.instances = dict()
         self.edges = set()
         self.literals = set()
         self._read_graph()
@@ -55,9 +55,10 @@ class OntologyGraph:
                 if o == OWL.Class:
                     self.add_to_classes(s)
                 else:
-                    self.add_to_classes(o)
-                    self.instances.add(s)
-                    self.add_edge((s, p, o))
+                    self.instances[s] = o
+                    if str(o) not in self.config.colors.ins:
+                        self.add_to_classes(o)
+                        self.add_edge((s, p, o))
             elif isinstance(o, Literal):
                 literal_id = uuid4().hex
                 self.literals.add((literal_id, o))
@@ -66,7 +67,7 @@ class OntologyGraph:
                 if p in self.config.class_inference_in_object:
                     self.add_to_classes(o)
                 if p in self.config.property_inference_in_object:
-                    self.instances.add(o)
+                    self.instances[s] = self.instances.get(s, None)
                 self.add_edge((s, p, o))
 
     def add_to_classes(self, cls):
@@ -91,8 +92,8 @@ class OntologyGraph:
         edge_strings = []
         for class_ in self.classes:
             node_strings.append(self._dot_class_node(class_))
-        for instance in self.instances:
-            node_strings.append(self._dot_instance_node(instance))
+        for instance, class_ in self.instances.items():
+            node_strings.append(self._dot_instance_node(instance, class_))
         for uri, literal in self.literals:
             node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, text_justify(literal, 20),
                                                                           node_color(self.config.colors.lit)))
@@ -101,13 +102,13 @@ class OntologyGraph:
         return node_strings, edge_strings
 
     def _dot_class_node(self, class_):
-        color = node_color(self.config.colors.cls)
+        color = node_color(self.config.get_cls_color(class_))
         if isinstance(class_, BNode):
             return '  "{}" [label=""{} shape=circle]'.format(class_, color)
         return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_, self.config.max_label_length), color)
 
-    def _dot_instance_node(self, instance):
-        color = node_color(self.config.colors.ins)
+    def _dot_instance_node(self, instance, class_=None):
+        color = node_color(self.config.get_ins_color(class_))
         if isinstance(instance, BNode):
             return '  "{}" [label=""{} shape=circle]'.format(instance, color)
         return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance, self.config.max_label_length),
