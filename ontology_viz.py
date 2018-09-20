@@ -3,7 +3,8 @@ import argparse
 from uuid import uuid4
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
-from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL, split_uri
+from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL
+from namespace import NamespaceManager, split_uri
 from utils import Config, SCHEMA
 
 query_classes = prepareQuery("""
@@ -22,6 +23,7 @@ common_ns = set(map(lambda ns: ns.uri, (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF
 class OntologyGraph:
     def __init__(self, files, config, format='ttl', ontology=None):
         self.g = Graph()
+        self.g.namespace_manager = NamespaceManager(self.g)
         if ontology is not None:
             g = Graph()
             self._load_files(g, ontology)
