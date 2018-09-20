@@ -37,6 +37,7 @@ class OntologyGraph:
         self.classes = set()
         self.instances = dict()
         self.edges = set()
+        self.labels = dict()
         self.literals = set()
         self._read_graph()
 
@@ -59,6 +60,8 @@ class OntologyGraph:
                     if str(o) not in self.config.colors.ins:
                         self.add_to_classes(o)
                         self.add_edge((s, p, o))
+            elif p == RDFS.label or p == SKOS.prefLabel:
+                self.labels[s] = o
             elif isinstance(o, Literal):
                 literal_id = uuid4().hex
                 self.literals.add((literal_id, o))
@@ -145,8 +148,11 @@ class OntologyGraph:
         return self.pred_map.get(uri, self.compute_label(uri, 0))
 
     def compute_label(self, uri, length=20):
-        prefix, _, name = self.g.compute_qname(uri)
-        label = '{}:{}'.format(prefix, name) if prefix else name
+        if uri in self.labels:
+            label = self.labels[uri]
+        else:
+            prefix, _, name = self.g.compute_qname(uri)
+            label = '{}:{}'.format(prefix, name) if prefix else name
         if length and len(label) > length:
             label = label[:length-3] + '...'
         return label
