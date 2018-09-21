@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 from uuid import uuid4
+from collections import defaultdict
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL
@@ -39,6 +40,7 @@ class OntologyGraph:
         self.instances = dict()
         self.edges = set()
         self.labels = dict()
+        self.tooltips = defaultdict(list)
         self.literals = set()
         self._read_graph()
 
@@ -61,8 +63,10 @@ class OntologyGraph:
                     if str(o) not in self.config.colors.ins:
                         self.add_to_classes(o)
                         self.add_edge((s, p, o))
-            elif p == RDFS.label or p == SKOS.prefLabel:
+            elif p in config.label_property:
                 self.labels[s] = o
+            elif p in config.tooltip_property:
+                self.tooltips[s].append(o)
             elif isinstance(o, Literal):
                 literal_id = uuid4().hex
                 self.literals.add((literal_id, o))
@@ -70,8 +74,8 @@ class OntologyGraph:
             else:
                 if p in self.config.class_inference_in_object:
                     self.add_to_classes(o)
-                if p in self.config.property_inference_in_object:
-                    self.instances[s] = self.instances.get(s, None)
+                # if p in self.config.property_inference_in_object:
+                self.instances[o] = self.instances.get(o, None)
                 self.add_edge((s, p, o))
 
     def add_to_classes(self, cls):
@@ -119,6 +123,8 @@ class OntologyGraph:
 
     def _dot_node(self, uri, attrs):
         node = Node(uri, attrs)
+        if self.tooltips[uri]:
+            node.update({"tooltip": " ".join(self.tooltips[uri])})
         if isinstance(uri, BNode):
             node.update({
                 "label": "",

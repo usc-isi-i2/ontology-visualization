@@ -19,6 +19,8 @@ class Config:
         self.class_inference_in_object = set()
         self.property_inference_in_object = set()
         self.max_label_length = 0
+        self.label_property = set()
+        self.tooltip_property = set()
         self.colors = Colors()
         if config_file:
             self.read_config_file(config_file)
@@ -31,6 +33,8 @@ class Config:
             self.class_inference_in_object = {URIRef(x) for x in config.get('class_inference_in_object', [])}
             self.property_inference_in_object = {URIRef(x) for x in config.get('property_inference_in_object', [])}
             self.max_label_length = int(config.get('max_label_length', 0))
+            self.label_property = {URIRef(x) for x in config.get('label_property', [])}
+            self.tooltip_property = {URIRef(x) for x in config.get('tooltip_property', [])}
         if 'colors' in config:
             config_color = ConfigColor()
             colors = config['colors']
