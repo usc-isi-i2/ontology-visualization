@@ -5,6 +5,7 @@ from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL
 from namespace import NamespaceManager, split_uri
+from graph_element import Node
 from utils import Config, SCHEMA
 
 query_classes = prepareQuery("""
@@ -98,24 +99,36 @@ class OntologyGraph:
         for instance, class_ in self.instances.items():
             node_strings.append(self._dot_instance_node(instance, class_))
         for uri, literal in self.literals:
-            node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, text_justify(literal, 20),
-                                                                          node_color(self.config.colors.lit)))
+            node = Node(uri, node_color(self.config.colors.lit))
+            node.update({
+                "label": text_justify(literal, self.config.max_label_length),
+                "shape": "rect"
+            })
+            node_strings.append(node.to_draw())
         for s, p, o in self.edges:
             edge_strings.append('  "{}" -> "{}" [label="{}"]'.format(s, o, self._pred_label(p)))
         return node_strings, edge_strings
 
     def _dot_class_node(self, class_):
         color = node_color(self.config.get_cls_color(class_))
-        if isinstance(class_, BNode):
-            return '  "{}" [label=""{} shape=circle]'.format(class_, color)
-        return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_, self.config.max_label_length), color)
+        return self._dot_node(class_, color)
 
     def _dot_instance_node(self, instance, class_=None):
         color = node_color(self.config.get_ins_color(class_))
-        if isinstance(instance, BNode):
-            return '  "{}" [label=""{} shape=circle]'.format(instance, color)
-        return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance, self.config.max_label_length),
-                                              color)
+        return self._dot_node(instance, color)
+
+    def _dot_node(self, uri, attrs):
+        node = Node(uri, attrs)
+        if isinstance(uri, BNode):
+            node.update({
+                "label": "",
+                "shape": "circle"
+            })
+            return node.to_draw()
+        node.update({
+            "label": self.compute_label(uri, self.config.max_label_length)
+        })
+        return node.to_draw()
 
     @classmethod
     def generate_dotstring(cls, node_strings, edge_strings, fill):
@@ -159,7 +172,10 @@ class OntologyGraph:
 
 
 def node_color(color):
-    return ' fillcolor="{}" color="{}"'.format(color, color)
+    return {
+        "fillcolor": color,
+        "color": color
+    }
 
 
 def text_justify(words, max_width):
