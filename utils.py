@@ -78,7 +78,7 @@ class ConfigColor:
         'black': '#000000',
     }
 
-    def parse(self, s, default='w'):
+    def parse(self, s, default='y'):
         if isinstance(s, dict):
             if 'default' not in s:
                 s['default'] = default

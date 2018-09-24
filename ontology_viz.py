@@ -53,7 +53,7 @@ class OntologyGraph:
 
     def _read_graph(self):
         for s, p, o in self.g:
-            if p in self.config.blacklist:
+            if any(uri in self.config.blacklist for uri in (s, p, o)):
                 continue
             if p == RDF.type:
                 if o == OWL.Class:
