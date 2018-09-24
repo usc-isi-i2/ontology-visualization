@@ -1,6 +1,6 @@
 from rdflib import URIRef
-from collections import namedtuple
 from rdflib.namespace import Namespace
+import re
 
 
 SCHEMA = Namespace('http://schema.org/')
@@ -21,6 +21,7 @@ class Config:
         self.max_label_length = 0
         self.label_property = set()
         self.tooltip_property = set()
+        self.bnode_regex = list()
         self.colors = Colors()
         if config_file:
             self.read_config_file(config_file)
@@ -35,6 +36,7 @@ class Config:
             self.max_label_length = int(config.get('max_label_length', 0))
             self.label_property = {URIRef(x) for x in config.get('label_property', [])}
             self.tooltip_property = {URIRef(x) for x in config.get('tooltip_property', [])}
+            self.bnode_regex = [re.compile(pattern) for pattern in config.get('bnode_regex', [])]
         if 'colors' in config:
             config_color = ConfigColor()
             colors = config['colors']
@@ -52,6 +54,12 @@ class Config:
         if isinstance(self.colors.cls, dict):
             return self.colors.cls.get(str(cls), self.colors.cls['default'])
         return self.colors.cls
+
+    def bnode_regex_match(self, uri):
+        for pattern in self.bnode_regex:
+            if pattern.match(uri):
+                return True
+        return False
 
 
 class UndefinedColorError(Exception):

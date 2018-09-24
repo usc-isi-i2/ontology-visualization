@@ -125,7 +125,7 @@ class OntologyGraph:
         node = Node(uri, attrs)
         if self.tooltips[uri]:
             node.update({"tooltip": " ".join(self.tooltips[uri])})
-        if isinstance(uri, BNode):
+        if isinstance(uri, BNode) or self.config.bnode_regex_match(uri):
             node.update({
                 "label": "",
                 "shape": "circle"
