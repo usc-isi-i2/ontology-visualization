@@ -1,6 +1,6 @@
 from rdflib import URIRef
-from collections import namedtuple
 from rdflib.namespace import Namespace
+import re
 
 
 SCHEMA = Namespace('http://schema.org/')
@@ -19,6 +19,9 @@ class Config:
         self.class_inference_in_object = set()
         self.property_inference_in_object = set()
         self.max_label_length = 0
+        self.label_property = set()
+        self.tooltip_property = set()
+        self.bnode_regex = list()
         self.colors = Colors()
         if config_file:
             self.read_config_file(config_file)
@@ -31,13 +34,32 @@ class Config:
             self.class_inference_in_object = {URIRef(x) for x in config.get('class_inference_in_object', [])}
             self.property_inference_in_object = {URIRef(x) for x in config.get('property_inference_in_object', [])}
             self.max_label_length = int(config.get('max_label_length', 0))
+            self.label_property = {URIRef(x) for x in config.get('label_property', [])}
+            self.tooltip_property = {URIRef(x) for x in config.get('tooltip_property', [])}
+            self.bnode_regex = [re.compile(pattern) for pattern in config.get('bnode_regex', [])]
         if 'colors' in config:
             config_color = ConfigColor()
             colors = config['colors']
-            self.colors.cls = config_color.parse(colors.get('class', self.colors.cls))
-            self.colors.lit = config_color.parse(colors.get('literal', self.colors.cls))
-            self.colors.ins = config_color.parse(colors.get('instance', self.colors.cls))
+            self.colors.cls = config_color.parse(colors.get('class', self.colors.cls), self.colors.cls)
+            self.colors.lit = config_color.parse(colors.get('literal', self.colors.lit), self.colors.lit)
+            self.colors.ins = config_color.parse(colors.get('instance', self.colors.ins))
             self.colors.filled = colors.get('filled', True)
+
+    def get_ins_color(self, cls):
+        if isinstance(self.colors.ins, dict):
+            return self.colors.ins.get(str(cls), self.colors.ins['default'])
+        return self.colors.ins
+
+    def get_cls_color(self, cls):
+        if isinstance(self.colors.cls, dict):
+            return self.colors.cls.get(str(cls), self.colors.cls['default'])
+        return self.colors.cls
+
+    def bnode_regex_match(self, uri):
+        for pattern in self.bnode_regex:
+            if pattern.match(uri):
+                return True
+        return False
 
 
 class UndefinedColorError(Exception):
@@ -64,7 +86,11 @@ class ConfigColor:
         'black': '#000000',
     }
 
-    def parse(self, s):
+    def parse(self, s, default='y'):
+        if isinstance(s, dict):
+            if 'default' not in s:
+                s['default'] = default
+            return {cls: self.parse(color) for cls, color in s.items()}
         if s.startswith('#'):
             return s
         if s in self.default_color_map:
