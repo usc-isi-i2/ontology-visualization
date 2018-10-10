@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import argparse
 from uuid import uuid4
+from collections import defaultdict
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
-from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL, split_uri
+from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL
+from namespace import NamespaceManager, split_uri
+from graph_element import Node
 from utils import Config, SCHEMA
 
 
@@ -23,6 +26,7 @@ common_ns = set(map(lambda ns: ns.uri, (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF
 class OntologyGraph:
     def __init__(self, files, config, format='ttl', ontology=None):
         self.g = Graph()
+        self.g.namespace_manager = NamespaceManager(self.g)
         if ontology is not None:
             g = Graph()
             self._load_files(g, ontology)
@@ -34,8 +38,10 @@ class OntologyGraph:
         self.config = config
         self._load_files(self.g, files, format)
         self.classes = set()
-        self.instances = set()
+        self.instances = dict()
         self.edges = set()
+        self.labels = dict()
+        self.tooltips = defaultdict(list)
         self.literals = set()
         self._read_graph()
 
@@ -48,15 +54,20 @@ class OntologyGraph:
 
     def _read_graph(self):
         for s, p, o in self.g:
-            if p in self.config.blacklist:
+            if any(uri in self.config.blacklist for uri in (s, p, o)):
                 continue
             if p == RDF.type:
                 if o == OWL.Class:
                     self.add_to_classes(s)
                 else:
-                    self.add_to_classes(o)
-                    self.instances.add(s)
-                    self.add_edge((s, p, o))
+                    self.instances[s] = o
+                    if str(o) not in self.config.colors.ins:
+                        self.add_to_classes(o)
+                        self.add_edge((s, p, o))
+            elif p in config.label_property:
+                self.labels[s] = o
+            elif p in config.tooltip_property:
+                self.tooltips[s].append(o)
             elif isinstance(o, Literal):
                 literal_id = uuid4().hex
                 self.literals.add((literal_id, o))
@@ -64,8 +75,8 @@ class OntologyGraph:
             else:
                 if p in self.config.class_inference_in_object:
                     self.add_to_classes(o)
-                if p in self.config.property_inference_in_object:
-                    self.instances.add(o)
+                # if p in self.config.property_inference_in_object:
+                self.instances[o] = self.instances.get(o, None)
                 self.add_edge((s, p, o))
 
     def add_to_classes(self, cls):
@@ -90,27 +101,41 @@ class OntologyGraph:
         edge_strings = []
         for class_ in self.classes:
             node_strings.append(self._dot_class_node(class_))
-        for instance in self.instances:
-            node_strings.append(self._dot_instance_node(instance))
+        for instance, class_ in self.instances.items():
+            node_strings.append(self._dot_instance_node(instance, class_))
         for uri, literal in self.literals:
-            node_strings.append('  "{}" [label="{}" shape=rect{}]'.format(uri, text_justify(literal, 20),
-                                                                          node_color(self.config.colors.lit)))
+            node = Node(uri, node_color(self.config.colors.lit))
+            node.update({
+                "label": text_justify(literal, self.config.max_label_length),
+                "shape": "rect"
+            })
+            node_strings.append(node.to_draw())
         for s, p, o in self.edges:
             edge_strings.append('  "{}" -> "{}" [label="{}"]'.format(s, o, self._pred_label(p)))
         return node_strings, edge_strings
 
     def _dot_class_node(self, class_):
-        color = node_color(self.config.colors.cls)
-        if isinstance(class_, BNode):
-            return '  "{}" [label=""{} shape=circle]'.format(class_, color)
-        return '  "{}" [label="{}"{}]'.format(class_, self.compute_label(class_, self.config.max_label_length), color)
+        color = node_color(self.config.get_cls_color(class_))
+        return self._dot_node(class_, color)
 
-    def _dot_instance_node(self, instance):
-        color = node_color(self.config.colors.ins)
-        if isinstance(instance, BNode):
-            return '  "{}" [label=""{} shape=circle]'.format(instance, color)
-        return '  "{}" [label="{}"{}]'.format(instance, self.compute_label(instance, self.config.max_label_length),
-                                              color)
+    def _dot_instance_node(self, instance, class_=None):
+        color = node_color(self.config.get_ins_color(class_))
+        return self._dot_node(instance, color)
+
+    def _dot_node(self, uri, attrs):
+        node = Node(uri, attrs)
+        if self.tooltips[uri]:
+            node.update({"tooltip": " ".join(self.tooltips[uri])})
+        if isinstance(uri, BNode) or self.config.bnode_regex_match(uri):
+            node.update({
+                "label": "",
+                "shape": "circle"
+            })
+            return node.to_draw()
+        node.update({
+            "label": self.compute_label(uri, self.config.max_label_length)
+        })
+        return node.to_draw()
 
     @classmethod
     def generate_dotstring(cls, node_strings, edge_strings, fill):
@@ -155,15 +180,21 @@ class OntologyGraph:
         return self.pred_map.get(uri, self.compute_label(uri, 0))
 
     def compute_label(self, uri, length=20):
-        prefix, _, name = self.g.compute_qname(uri)
-        label = '{}:{}'.format(prefix, name) if prefix else name
+        if uri in self.labels:
+            label = self.labels[uri]
+        else:
+            prefix, _, name = self.g.compute_qname(uri)
+            label = '{}:{}'.format(prefix, name) if prefix else name
         if length and len(label) > length:
             label = label[:length-3] + '...'
         return label
 
 
 def node_color(color):
-    return ' fillcolor="{}" color="{}"'.format(color, color)
+    return {
+        "fillcolor": color,
+        "color": color
+    }
 
 
 def text_justify(words, max_width):
