@@ -64,9 +64,9 @@ class OntologyGraph:
                     if str(o) not in self.config.colors.ins:
                         self.add_to_classes(o)
                         self.add_edge((s, p, o))
-            elif p in config.label_property:
+            elif p in self.config.label_property:
                 self.labels[s] = o
-            elif p in config.tooltip_property:
+            elif p in self.config.tooltip_property:
                 self.tooltips[s].append(o)
             elif isinstance(o, Literal):
                 literal_id = uuid4().hex
