@@ -6,6 +6,7 @@ from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL, split_uri
 from utils import Config, SCHEMA
 
+
 query_classes = prepareQuery("""
 SELECT ?s {
   { ?s a owl:Class } UNION
@@ -130,6 +131,18 @@ class OntologyGraph:
         nodes, edges = self.convert()
         dot = self.generate_dotstring(nodes, edges, self.config.colors.filled)
         return dot
+
+    def graph(self, format='svg'):
+        try:
+            from graphviz import Source
+        except ImportError:
+            raise ImportError("You don't have graphviz package installed.\n"
+                              "Please install graphviz or use write_file function to save dot file and generate the "
+                              "graph manually.")
+        dot = self.generate()
+        graph = Source(dot)
+        graph.format = format
+        return graph
 
     def write_file(self, file):
         dot = self.generate()
