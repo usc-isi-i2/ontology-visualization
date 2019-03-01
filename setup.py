@@ -7,7 +7,7 @@ with open('requirements.txt') as req:
     install_requires = req.read().split("\n")
 
 setuptools.setup(
-    name="Ontology Visualizer",
+    name="ontology_visualization",
     version="0.0.1",
     author="",
     author_email="",
