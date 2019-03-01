@@ -9,12 +9,12 @@ with open('requirements.txt') as req:
 setuptools.setup(
     name="ontology_visualization",
     version="0.0.1",
-    author="",
-    author_email="",
+    author="fatestigma",
+    author_email="fate_stigma@hotmail.com",
     description="",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/usc-isi-i2/ontology-visualization.git",
+    url="https://github.com/edmondchuc/ontology-visualization.git",
     packages=setuptools.find_packages(),
     license='LICENSE',
     classifiers=[
