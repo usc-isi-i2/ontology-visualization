@@ -1,5 +1,10 @@
 #+TITLE: Ontology Visualization
 
+* Install as a library with pip
+#+BEGIN_SRC bash
+pip install git+https://github.com/usc-isi-i2/ontology-visualization.git#egg=ontology_visualization
+#+END_SRC
+
 * Example
 #+BEGIN_SRC bash
   ./ontology_viz.py -o test.dot test.ttl -O ontology.ttl
