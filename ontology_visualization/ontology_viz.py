@@ -5,9 +5,9 @@ from collections import defaultdict
 from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, RDFS, SKOS, XSD, DOAP, FOAF, OWL
-from namespace import NamespaceManager, split_uri
-from graph_element import Node
-from utils import Config, SCHEMA
+from ontology_visualization.namespace import NamespaceManager, split_uri
+from ontology_visualization.graph_element import Node
+from ontology_visualization.utils import Config, SCHEMA
 
 
 query_classes = prepareQuery("""
