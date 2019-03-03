@@ -1,6 +1,11 @@
 #+TITLE: Ontology Visualization
 
-* Example
+** Install as a library with pip
+#+BEGIN_SRC bash
+pip install git+https://github.com/usc-isi-i2/ontology-visualization.git#egg=ontology_visualization
+#+END_SRC
+
+** Example
 #+BEGIN_SRC bash
   ./ontology_viz.py -o test.dot test.ttl -O ontology.ttl
   dot -Tpng -o test.png test.dot
@@ -35,13 +40,17 @@
     - ~filled~: config whether fill the node, default value: ~true~.
 - Classes defined in the ontology will be omitted in the output graph. This action can be switched with argument ~-V~.
 
-** Useful Graphviz flags
+*** Useful Graphviz flags
 
 - ~-K~ to specify which [[https://graphviz.gitlab.io/_pages/pdf/dot.1.pdf][layout algorithm]] to use. E.g. ~-Kneato~ and ~-Ksfdp~ . Notice that inorder to use ~sfdp~ layout algorithm, you will need to build your graphviz with [[http://gts.sourceforge.net][GTS]].
 - ~-T~ to specify the [[https://graphviz.gitlab.io/_pages/doc/info/output.html][output format]].
 - ~-G~ to set a [[https://graphviz.gitlab.io/_pages/doc/info/attrs.html][graph attribute]]. E.g. ~-Goverlap=prism~
 
-* Requirements
+** Requirements
 In order to use this tool, you'll need to make sure you have [[https://github.com/RDFLib/rdflib][rdflib]] installed.
 
 In order to convert =dot= into =png= or =svg= image, you will need [[https://www.graphviz.org][Graphviz]].
+
+** Web Demo
+
+A web application version is at https://github.com/edmondchuc/rdf-graph-viewer
