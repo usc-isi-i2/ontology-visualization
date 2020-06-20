@@ -1,2 +1,10 @@
-rdflib
-graphviz
+certifi==2020.4.5.2
+chardet==3.0.4
+graphviz==0.14
+idna==2.9
+isodate==0.6.0
+pyparsing==2.4.7
+rdflib==5.0.0
+requests==2.24.0
+six==1.15.0
+urllib3==1.25.9
