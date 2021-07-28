@@ -20,7 +20,7 @@ SELECT ?s {
   { ?s a ?property } UNION { ?s owl:subPropertyOf+ ?o . ?o a ?property }
   FILTER ( ?property IN ( owl:DatatypeProperty, owl:ObjectProperty ) )
 } """, initNs={'owl': OWL})
-common_ns = set(map(lambda ns: ns.uri, (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF)))
+common_ns = {URIRef(ns) for ns in (RDF, RDFS, SKOS, SCHEMA, XSD, DOAP, FOAF)}
 
 
 class OntologyGraph:
