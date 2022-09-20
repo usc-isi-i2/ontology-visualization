@@ -1,2 +1,2 @@
-rdflib >= 6.0.0, < 7.0.0
-graphviz == 0.17
+rdflib==6.2.0
+graphviz==0.20.1

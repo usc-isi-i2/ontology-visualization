@@ -50,7 +50,7 @@ class OntologyGraph:
         if isinstance(files, str):
             files = [files]
         for file in files:
-            graph.load(file, format=format)
+            graph.parse(file, format=format)
 
     def _read_graph(self):
         for s, p, o in self.g:
